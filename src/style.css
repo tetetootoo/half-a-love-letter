@@ -47,35 +47,16 @@ html, body {
   margin: 0;
 }
 
-html {
-  /* overflow-x is deliberately only set here, not on body: position:fixed
-     elements (like .tabs) are sized against the viewport directly and can
-     register as horizontal overflow on the root even when body itself
-     clips its normal-flow content, so html needs its own overflow-x:hidden.
-     overflow-y: auto has to be re-declared alongside it, because setting
-     ANY overflow on html disables the normal browser behavior where body's
-     overflow propagates up to become the page's scroll — without this the
-     page loses the ability to scroll vertically at all once content (e.g.
-     the mobile stacked layout) exceeds one screen's height.
-     Critically, this pair must NOT also be applied to body: CSS silently
-     upgrades a 'visible' overflow-y to 'auto' if its sibling axis is
-     non-visible, so if body also had overflow-x:hidden, its overflow-y
-     would get auto-upgraded too — making body its OWN separate scroll
-     container that traps the overflow internally instead of letting it
-     reach html to be scrolled. */
-  overflow-x: hidden;
-  overflow-y: auto;
-
-  /* Reserves the scrollbar's width up front. Without this, on systems with
-     a classic (non-overlay) scrollbar — e.g. macOS with a mouse connected,
-     or Windows generally — 100vw is measured INCLUDING the scrollbar, but
-     the actually-visible area is narrower by the scrollbar's width. Any
-     element sized off raw vw (below) then overhangs the real right edge by
-     that amount, which is enough to trigger a horizontal scrollbar itself.
-     This never shows up in a headless browser, which is why it's easy to
-     miss in automated checks. */
-  scrollbar-gutter: stable;
-}
+/* Deliberately NOT setting any overflow on html: doing so turns html into
+   its own explicit scroll container instead of the normal browser default
+   (body's overflow propagating to the viewport) — which on mobile WebKit
+   can make position:fixed children (like .background) scroll away with
+   the page instead of staying pinned, since "fixed to the viewport" and
+   "fixed relative to html's own scroll box" stop being the same thing.
+   Horizontal overflow (the reason this was here before) is instead
+   prevented at the source: .tabs/.brand/.tab-btn.key-btn size themselves
+   off --vw (a clientWidth-based, scrollbar-corrected unit set in app.js)
+   rather than raw vw, which is what actually caused the overflow. */
 
 body {
   min-height: 100vh;
