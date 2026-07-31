@@ -45,14 +45,27 @@ button, textarea, input, select {
 html, body {
   height: 100%;
   margin: 0;
-  /* overflow-x needs to be on html too, not just body — position:fixed
-     elements (like .tabs) are sized against the viewport directly and can
-     still register as horizontal overflow on the root even when body
-     itself clips its normal-flow content. */
-  overflow-x: hidden;
 }
 
 html {
+  /* overflow-x is deliberately only set here, not on body: position:fixed
+     elements (like .tabs) are sized against the viewport directly and can
+     register as horizontal overflow on the root even when body itself
+     clips its normal-flow content, so html needs its own overflow-x:hidden.
+     overflow-y: auto has to be re-declared alongside it, because setting
+     ANY overflow on html disables the normal browser behavior where body's
+     overflow propagates up to become the page's scroll — without this the
+     page loses the ability to scroll vertically at all once content (e.g.
+     the mobile stacked layout) exceeds one screen's height.
+     Critically, this pair must NOT also be applied to body: CSS silently
+     upgrades a 'visible' overflow-y to 'auto' if its sibling axis is
+     non-visible, so if body also had overflow-x:hidden, its overflow-y
+     would get auto-upgraded too — making body its OWN separate scroll
+     container that traps the overflow internally instead of letting it
+     reach html to be scrolled. */
+  overflow-x: hidden;
+  overflow-y: auto;
+
   /* Reserves the scrollbar's width up front. Without this, on systems with
      a classic (non-overlay) scrollbar — e.g. macOS with a mouse connected,
      or Windows generally — 100vw is measured INCLUDING the scrollbar, but
@@ -130,6 +143,14 @@ body {
   text-align: justify;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* Mobile-only "info" toggle + close button for .tagline — see the mobile
+   layout section near the bottom of this file. Both hidden on desktop,
+   where the tagline is just shown directly (with no close button). */
+.tagline-toggle,
+.tagline-close {
+  display: none;
 }
 
 /* ---------- Tabs (top-right) ---------- */
@@ -220,11 +241,9 @@ body {
 
 /* Sits to the right of the envelope, vertically centered on it — left:100%
    is relative to #envelope (its positioned ancestor), so this tracks the
-   envelope's own responsive width automatically. Rides along with any
-   transform app.js's centerEnvelope() applies further up the tree, since
-   it's nested inside that same subtree. Shared by the refresh button
-   (read mode) and the write-controls stack (write mode) — only one of the
-   two is ever visible at a time, so they occupy the same spot. */
+   envelope's own responsive width automatically. Used by the refresh
+   button in read mode (write-controls has its own row below the envelope
+   instead — see .write-controls further down). */
 .envelope-side-control {
   position: absolute;
   left: 100%;
@@ -285,8 +304,20 @@ body.mode-write .refresh-btn {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
+/* Its own row below the envelope (not the side-control spot the refresh
+   button uses) — width:100% of #envelope (its positioned ancestor) makes
+   the frame exactly as wide as the letter, with the char count and submit
+   button pushed to its two ends. */
 .write-controls {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  margin-top: 28px;
+  display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
 }
 
 .write-controls[hidden] {
@@ -320,6 +351,16 @@ body.mode-write .refresh-btn {
   right: 0;
   bottom: 0;
   aspect-ratio: 1 / 1;
+  /* Without this, .paper-scroll's height (below) can ask for more room
+     than fits in here — e.g. on a small mobile envelope with a near-max
+     reveal shift — and since aspect-ratio is only a *preferred* size for
+     an auto-height box, the overflowing child would otherwise stretch
+     .paper itself taller than the envelope, which breaks the "paper is a
+     fixed size that only ever moves via transform" assumption the margin
+     clearance above the envelope (see .envelope-wrap) depends on. Any
+     excess now falls back to .paper-scroll's own overflow-y: auto instead
+     of growing .paper. */
+  overflow: hidden;
   pointer-events: auto;
   background-image: url('../assets/letter/paper.png');
   background-size: 100% 100%;
@@ -455,6 +496,14 @@ body.mode-read .letter-textarea { display: none; }
 }
 
 /* ---------- Footer ---------- */
+/* On desktop this wrapper doesn't generate a box at all, so its two
+   children keep their own independent fixed-corner positioning exactly as
+   before. It only becomes a real (flex) container on mobile — see the
+   @media (max-width: 700px) block near the end of this file. */
+.site-footer {
+  display: contents;
+}
+
 .footer-credit {
   position: fixed;
   right: 20px;
@@ -528,4 +577,104 @@ body.mode-read .letter-textarea { display: none; }
   line-height: 1;
   cursor: pointer;
   padding: 4px;
+}
+
+/* ---------- Mobile layout ----------
+   Desktop pins .brand/.tabs to opposite top corners and centers the
+   envelope independent of scroll (see app.js's pinEnvelopePosition). On
+   narrow viewports there isn't room for that without things overlapping,
+   so everything instead becomes normal in-flow content, stacked in the
+   order it already appears in the HTML: brand, tabs, envelope, then the
+   footer (imprint + credit) — which .stage's min-height:100vh pushes
+   below one full screen's worth of scroll either way. */
+@media (max-width: 700px) {
+  .brand {
+    position: static;
+    max-width: none;
+    padding: 24px 20px 0;
+  }
+
+  /* display:block (not inline-block) so it drops to its own line below
+     the headline, instead of sitting next to it. */
+  .tagline-toggle {
+    display: block;
+    margin-top: 8px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .tagline {
+    position: relative;
+    display: none;
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 12px 34px 12px 14px;
+    border-radius: 10px;
+    color: #000;
+    text-shadow: none;
+  }
+
+  .tagline.is-open {
+    display: block;
+  }
+
+  .tagline-close {
+    display: block;
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #000;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .tabs {
+    position: static;
+    width: 100%;
+    max-width: none;
+    justify-content: center;
+    margin: 0;
+    padding: 16px 20px 0;
+  }
+
+  .stage {
+    justify-content: flex-start;
+  }
+
+  /* Generous enough to fit the longest possible slide-out (see
+     MAX_REVEAL_SHIFT in app.js) so the letter can never rise up into the
+     read/write buttons above it, however long it is. */
+  .envelope-wrap {
+    margin-top: 150px;
+  }
+
+  /* display:contents on desktop (default, outside this media query) makes
+     this wrapper invisible to layout, so .imprint-wrap/.footer-credit's
+     own fixed corner positioning is unaffected there. Only inside this
+     mobile block does it become a real flex container. */
+  .site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 25px;
+    margin-top: 40px;
+    padding: 0 20px 30px;
+  }
+
+  .imprint-wrap,
+  .footer-credit {
+    position: relative;
+    inset: auto;
+  }
 }

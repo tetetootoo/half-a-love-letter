@@ -57,6 +57,10 @@
   // reaching up into the tab buttons for extremely long letters).
   const MAX_REVEAL_SHIFT = 140;
 
+  // Matches the breakpoint in style.css where the layout switches from
+  // fixed-position corners + a pinned envelope to plain stacked flow.
+  const mobileLayout = window.matchMedia('(max-width: 700px)');
+
   const envelopeWrap = document.querySelector('.envelope-wrap');
   const envelope = document.getElementById('envelope');
   const paper = document.getElementById('paper');
@@ -97,7 +101,12 @@
     const overflow = Math.max(0, paperScroll.scrollHeight - paperScroll.clientHeight);
     const shift = Math.min(overflow, MAX_REVEAL_SHIFT);
     paper.style.setProperty('--reveal-shift', shift ? `-${shift}px` : '0px');
-    paperScroll.style.height = shift ? `calc(50% + ${shift}px)` : '';
+    // Capped at 100% so this never asks .paper (fixed-size, see its
+    // overflow:hidden in style.css) for more room than it actually has —
+    // on a small envelope, 50% + MAX_REVEAL_SHIFT can otherwise exceed
+    // .paper's whole content-box height. Any real excess still scrolls
+    // via .paper-scroll's own overflow-y: auto.
+    paperScroll.style.height = shift ? `min(calc(50% + ${shift}px), 100%)` : '';
     return shift;
   }
 
@@ -112,6 +121,12 @@
   // back into how much .stage's flex centering shifts things in the first
   // place.
   function pinEnvelopePosition() {
+    // Mobile lays everything out in normal document flow instead —
+    // nothing to compute, just make sure no leftover transform applies.
+    if (mobileLayout.matches) {
+      envelopeWrap.style.transform = '';
+      return;
+    }
     envelopeWrap.style.transform = 'translateY(0px)';
     const envRect = envelope.getBoundingClientRect();
     const envCenter = (envRect.top + envRect.bottom) / 2;
@@ -245,4 +260,15 @@
     document.fonts.ready.then(syncTaglineWidth);
   }
   window.addEventListener('resize', syncTaglineWidth);
+
+  // Mobile-only: the tagline is hidden behind an "info" toggle instead of
+  // shown directly (see the @media (max-width: 700px) block in style.css).
+  const taglineToggle = document.getElementById('tagline-toggle');
+  const taglineClose = document.getElementById('tagline-close');
+  taglineToggle.addEventListener('click', () => {
+    taglineEl.classList.toggle('is-open');
+  });
+  taglineClose.addEventListener('click', () => {
+    taglineEl.classList.remove('is-open');
+  });
 })();

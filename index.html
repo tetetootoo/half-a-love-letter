@@ -13,7 +13,11 @@
 
   <div class="brand">
     <h1 class="logo">half a love letter</h1>
-    <p class="tagline">Share your heart with the world and leave a note of love for a special someone or to the world. Completely anonymously.<br>Or just come and read :)</p>
+    <button class="tagline-toggle" id="tagline-toggle" type="button">info</button>
+    <p class="tagline" id="tagline">
+      <button class="tagline-close" id="tagline-close" type="button" aria-label="Close info">&times;</button>
+      Share your heart with the world and leave a note of love for a special someone or to the world. Completely anonymously.<br>Or just come and read :)
+    </p>
   </div>
 
   <nav class="tabs" aria-label="Read or write a letter">
@@ -56,7 +60,7 @@
           <span class="refresh-label">read next</span>
         </button>
 
-        <div id="write-controls" class="write-controls envelope-side-control" hidden>
+        <div id="write-controls" class="write-controls" hidden>
           <span class="char-count-row"><span id="char-count">0</span> / 2000</span>
           <button id="submit-button" class="pill-btn" type="button">submit</button>
         </div>
@@ -68,17 +72,19 @@
     </section>
   </main>
 
-  <div class="imprint-wrap">
-    <div class="imprint-panel" id="imprint-panel" hidden>
-      <button class="imprint-close" id="imprint-close" type="button" aria-label="Close imprint">&times;</button>
-      <p class="imprint-line">Half Odd<br>c/o Theresa Schantz</p>
-      <p class="imprint-line">CVR: 45714470</p>
-      <p class="imprint-line">ts@halfodd.com</p>
+  <div class="site-footer">
+    <div class="imprint-wrap">
+      <div class="imprint-panel" id="imprint-panel" hidden>
+        <button class="imprint-close" id="imprint-close" type="button" aria-label="Close imprint">&times;</button>
+        <p class="imprint-line">Half Odd<br>c/o Theresa Schantz</p>
+        <p class="imprint-line">CVR: 45714470</p>
+        <p class="imprint-line">ts@halfodd.com</p>
+      </div>
+      <button class="imprint-toggle" id="imprint-toggle" type="button">Imprint</button>
     </div>
-    <button class="imprint-toggle" id="imprint-toggle" type="button">Imprint</button>
-  </div>
 
-  <span class="footer-credit">Made with ❤️ for valentines day 2026 by <a class="footer-link" href="https://halfodd.com" target="_blank" rel="noopener noreferrer">Half Odd</a></span>
+    <span class="footer-credit">Made with ❤️ for valentines day 2026 by <a class="footer-link" href="https://halfodd.com" target="_blank" rel="noopener noreferrer">Half Odd</a></span>
+  </div>
 
   <script type="module" src="src/backend.js"></script>
   <script src="src/app.js" defer></script>
