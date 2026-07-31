@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Half a love letter</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9D%A4%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body class="mode-read">
+
+  <div class="background"></div>
+
+  <div class="brand">
+    <h1 class="logo">half a love letter</h1>
+    <p class="tagline">Share your heart with the world and leave a note of love for a special someone or to the world. Completely anonymously.<br>Or just come and read :)</p>
+  </div>
+
+  <nav class="tabs" aria-label="Read or write a letter">
+    <button id="tab-read" class="tab-btn key-btn is-active" type="button">
+      <img id="tab-read-img" src="assets/buttons/heart-1-red.png" alt="Read" width="1563" height="1563" />
+    </button>
+    <button id="tab-write" class="tab-btn key-btn" type="button">
+      <img id="tab-write-img" src="assets/buttons/heart-2-pink.png" alt="Write" width="1563" height="1563" />
+    </button>
+  </nav>
+
+  <main class="stage">
+    <section class="envelope-wrap">
+      <div class="envelope" id="envelope">
+        <!-- drop your envelope artwork in assets/letter/ — see assets/README.md for specs -->
+        <img class="flap-back" src="assets/letter/envelope-back.png" alt="" onerror="this.style.display='none'" />
+
+        <!-- clips the paper's slide so it's never visible below/beside the envelope -->
+        <div class="paper-mask">
+          <div class="paper" id="paper">
+            <div class="paper-scroll">
+              <div class="paper-inner">
+                <div id="letter-content" class="letter-content"></div>
+                <textarea
+                  id="letter-text"
+                  class="letter-textarea"
+                  maxlength="2000"
+                  placeholder="Dear Wishlist,&#10;Be mine. I've been eyeing you for weeks, and I'm ready to commit."
+                ></textarea>
+              </div>
+              <div id="letter-date" class="letter-date"></div>
+            </div>
+          </div>
+        </div>
+
+        <img class="pocket-front" src="assets/letter/envelope-front.png" alt="" onerror="this.style.display='none'" />
+
+        <button id="refresh-button" class="refresh-btn envelope-side-control" type="button">
+          <img src="assets/buttons/refresh.png" alt="" />
+          <span class="refresh-label">read next</span>
+        </button>
+
+        <div id="write-controls" class="write-controls envelope-side-control" hidden>
+          <span class="char-count-row"><span id="char-count">0</span> / 2000</span>
+          <button id="submit-button" class="pill-btn" type="button">submit</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div id="write-message" class="write-message" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <div class="imprint-wrap">
+    <div class="imprint-panel" id="imprint-panel" hidden>
+      <button class="imprint-close" id="imprint-close" type="button" aria-label="Close imprint">&times;</button>
+      <p class="imprint-line">Half Odd<br>c/o Theresa Schantz</p>
+      <p class="imprint-line">CVR: 45714470</p>
+      <p class="imprint-line">ts@halfodd.com</p>
+    </div>
+    <button class="imprint-toggle" id="imprint-toggle" type="button">Imprint</button>
+  </div>
+
+  <span class="footer-credit">Made with ❤️ for valentines day 2026 by <a class="footer-link" href="https://halfodd.com" target="_blank" rel="noopener noreferrer">Half Odd</a></span>
+
+  <script type="module" src="src/backend.js"></script>
+  <script src="src/app.js" defer></script>
+</body>
+</html>

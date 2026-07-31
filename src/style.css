@@ -1,0 +1,531 @@
+@font-face {
+  font-family: 'Clear Sans';
+  src: url('../assets/fonts/ClearSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Clear Sans';
+  src: url('../assets/fonts/ClearSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Clear Sans';
+  src: url('../assets/fonts/ClearSans-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Clear Sans';
+  src: url('../assets/fonts/ClearSans-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --red: #c9021d;
+  --red-mid: #a80418;
+  --ink: #1c1a17;
+}
+
+* { box-sizing: border-box; }
+
+button, textarea, input, select {
+  font-family: inherit;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  /* overflow-x needs to be on html too, not just body — position:fixed
+     elements (like .tabs) are sized against the viewport directly and can
+     still register as horizontal overflow on the root even when body
+     itself clips its normal-flow content. */
+  overflow-x: hidden;
+}
+
+html {
+  /* Reserves the scrollbar's width up front. Without this, on systems with
+     a classic (non-overlay) scrollbar — e.g. macOS with a mouse connected,
+     or Windows generally — 100vw is measured INCLUDING the scrollbar, but
+     the actually-visible area is narrower by the scrollbar's width. Any
+     element sized off raw vw (below) then overhangs the real right edge by
+     that amount, which is enough to trigger a horizontal scrollbar itself.
+     This never shows up in a headless browser, which is why it's easy to
+     miss in automated checks. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  min-height: 100vh;
+  font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--red);
+}
+
+.background {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(to bottom,
+      rgba(8, 12, 24, 0.35) 0%,
+      rgba(8, 12, 24, 0.05) 35%,
+      rgba(8, 12, 24, 0.25) 100%),
+    url('../assets/background.jpg') center bottom / cover no-repeat fixed;
+}
+
+.stage {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px 60px;
+}
+
+/* ---------- Brand (top-left) ---------- */
+.brand {
+  position: fixed;
+  top: 24px;
+  left: 20px;
+  z-index: 5;
+  /* Safety cap so the tagline (long, unconstrained text) can't stretch this
+     box wide before JS measures the logo and pins the tagline's width to
+     it. Without this, shrink-to-fit sizing would size .brand off the
+     tagline's own preferred width instead of the logo's. Scales down on
+     narrow viewports (together with .tabs below) so the two fixed,
+     opposite-corner boxes never collide in the middle.
+     Uses --vw (a scrollbar-corrected 1% of viewport width, set from
+     app.js) instead of raw vw — see the html { scrollbar-gutter } comment
+     above for why. */
+  max-width: clamp(150px, calc(45 * var(--vw, 1vw)), 340px);
+}
+
+.logo {
+  display: inline-block;
+  font-size: 1.8rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.tagline {
+  /* width is set from JS to match the rendered width of .logo */
+  margin: 10px 0 0;
+  height: fit-content;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: justify;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* ---------- Tabs (top-right) ---------- */
+.tabs {
+  position: fixed;
+  top: 24px;
+  right: 20px;
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  /* guarantees the box's own right edge can never push past the viewport's
+     right edge (and cause horizontal scroll) no matter how the key images
+     are sized */
+  max-width: calc(100 * var(--vw, 1vw) - 40px);
+}
+
+/* ---------- Heart toggle buttons (assets/heart-1-*.png, heart-2-*.png) ----------
+   Each button swaps between its own red (active) and pink (inactive) image
+   in app.js's setMode() — exactly one heart is red at a time. Sized with
+   clamp() so it shrinks on narrow viewports instead of colliding with
+   .brand on the opposite corner. */
+.tab-btn.key-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  height: clamp(60px, calc(16 * var(--vw, 1vw)), 112px);
+  transition: transform 0.12s ease;
+}
+
+.tab-btn.key-btn img {
+  display: block;
+  height: 100%;
+  width: auto;
+}
+
+.tab-btn.key-btn:hover {
+  transform: translateY(-2px);
+}
+
+.tab-btn.key-btn:active {
+  transform: translateY(1px);
+  transition: transform 0.05s ease;
+}
+
+/* ---------- Envelope ---------- */
+.envelope-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  /* .stage centers this vertically as a baseline; app.js's centerEnvelope()
+     overrides margin-top with an exact value so the envelope+letter
+     composition (which can extend above the envelope when the letter
+     slides out further) stays centered as a whole, not just the envelope. */
+  margin: 0 0 30px;
+}
+
+.envelope {
+  position: relative;
+  width: min(86vw, 420px);
+  /* envelope-back.png / envelope-front.png / paper.png are all the same
+     square canvas (1563x1563) — keep this 1/1 as long as that's true. */
+  aspect-ratio: 1 / 1;
+  /* Two stacked shadows so the whole envelope+letter reads as floating
+     above the photo instead of pasted flat onto it: a tight, darker one
+     for contact definition right at the edges, and a larger, softer one
+     for ambient depth. drop-shadow (not box-shadow) so it follows the
+     envelope/paper's actual silhouette, not just their bounding boxes. */
+  filter:
+    drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5))
+    drop-shadow(0 32px 48px rgba(0, 0, 0, 0.45));
+}
+
+.flap-back,
+.pocket-front {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.flap-back {
+  z-index: 1;
+}
+
+/* Sits to the right of the envelope, vertically centered on it — left:100%
+   is relative to #envelope (its positioned ancestor), so this tracks the
+   envelope's own responsive width automatically. Rides along with any
+   transform app.js's centerEnvelope() applies further up the tree, since
+   it's nested inside that same subtree. Shared by the refresh button
+   (read mode) and the write-controls stack (write mode) — only one of the
+   two is ever visible at a time, so they occupy the same spot. */
+.envelope-side-control {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/* Narrow viewports don't have room to the right of the envelope (which is
+   already up to 86vw wide) — drop below it instead, still centered. */
+@media (max-width: 700px) {
+  .envelope-side-control {
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    margin-left: 0;
+    margin-top: 20px;
+    flex-direction: row;
+  }
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.mode-write .refresh-btn {
+  display: none;
+}
+
+.refresh-btn img {
+  display: block;
+  width: 52px;
+  height: 52px;
+  transition: transform 0.3s ease;
+}
+
+.refresh-btn:hover img {
+  transform: rotate(-35deg);
+}
+
+.refresh-btn:active img {
+  transform: rotate(-110deg) scale(0.9);
+  transition: transform 0.15s ease;
+}
+
+.refresh-label {
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.write-controls {
+  align-items: flex-start;
+}
+
+.write-controls[hidden] {
+  display: none;
+}
+
+.pocket-front {
+  z-index: 3;
+}
+
+/* Clips the paper's slide to exactly the envelope's box on the bottom/sides,
+   but extends well above it so a letter that slides out further (see
+   --reveal-shift below) is never clipped early. */
+.paper-mask {
+  position: absolute;
+  inset: -220% 0 0 0;
+  overflow: hidden;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Same canvas as the envelope images, so it sits flush at rest — the
+   registration the artwork was drawn to. The slide starts pushed down
+   (mostly hidden behind envelope-front.png) and settles at translateY(0),
+   or higher via --reveal-shift (set from JS) when the letter is longer
+   than the always-visible window and needs to slide out further to be
+   fully readable. */
+.paper {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  aspect-ratio: 1 / 1;
+  pointer-events: auto;
+  background-image: url('../assets/letter/paper.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  padding: 80px;
+  --reveal-shift: 0px;
+  transform: translateY(58%);
+  opacity: 0;
+  transition: transform 1.15s cubic-bezier(0.16, 0.85, 0.3, 1), opacity 0.7s ease-out;
+}
+
+.paper.is-revealed {
+  transform: translateY(var(--reveal-shift));
+  opacity: 1;
+}
+
+.paper.is-cycling {
+  transform: translate(16px, 26px);
+  opacity: 0;
+  transition: transform 0.5s ease-in-out, opacity 0.4s ease-in-out;
+}
+
+/* The always-visible window before the fold covers the rest of the paper.
+   Text taller than this slides the whole paper out further via JS (see
+   --reveal-shift and MAX_REVEAL_SHIFT in app.js), which also grows this
+   box's height to match. overflow-y is just a safety net for the rare
+   letter long enough to exceed even the maximum slide-out. */
+.paper-scroll {
+  height: 50%;
+  overflow-y: auto;
+}
+
+.paper-inner {
+  min-height: 60px;
+}
+
+.letter-content {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.letter-textarea {
+  display: none;
+  width: 100%;
+  min-height: 220px;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.letter-textarea::placeholder {
+  color: rgba(28, 26, 23, 0.4);
+}
+
+.letter-date {
+  margin-top: 14px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--red-mid);
+  text-align: right;
+}
+
+/* ---------- Mode switching ---------- */
+body.mode-write .letter-content { display: none; }
+body.mode-write .letter-textarea { display: block; }
+body.mode-write .letter-date { display: none; }
+
+body.mode-read .letter-textarea { display: none; }
+
+/* ---------- Controls ---------- */
+.controls {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.pill-btn {
+  font-size: 0.95rem;
+  padding: 12px 28px;
+  border-radius: 999px;
+  border: none;
+  background: var(--red);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+  transition: transform 0.15s ease;
+}
+
+.pill-btn:hover { transform: translateY(-1px); }
+.pill-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.pill-outline {
+  background: transparent;
+  border: 1.5px solid var(--red);
+  box-shadow: none;
+}
+
+.char-count-row {
+  font-size: 0.85rem;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+.write-message {
+  max-width: 480px;
+  text-align: center;
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  min-height: 1.2em;
+}
+
+.write-message .msg-box {
+  padding: 12px 22px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+@media (max-width: 480px) {
+  .logo { font-size: 1.5rem; }
+}
+
+/* ---------- Footer ---------- */
+.footer-credit {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  z-index: 5;
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.footer-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
+
+.imprint-wrap {
+  position: fixed;
+  left: 20px;
+  bottom: 16px;
+  z-index: 5;
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.imprint-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-shadow: inherit;
+  cursor: pointer;
+}
+
+.imprint-toggle:hover {
+  text-decoration: underline;
+}
+
+.imprint-panel {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  margin-bottom: 10px;
+  padding: 20px 28px 4px 0;
+  width: max-content;
+  max-width: 60vw;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+.imprint-line {
+  margin: 0 0 12px;
+}
+
+.imprint-close {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  background: none;
+  border: none;
+  color: inherit;
+  text-shadow: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}

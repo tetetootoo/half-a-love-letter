@@ -1,0 +1,248 @@
+(function () {
+  // document.documentElement.clientWidth excludes the scrollbar's own width
+  // (unlike window.innerWidth or the CSS `vw` unit), so this gives layout
+  // code an accurate "1% of the actually-visible width" to size against —
+  // see the html { scrollbar-gutter } comment in style.css for the bug this
+  // avoids.
+  function updateSafeViewportUnit() {
+    document.documentElement.style.setProperty('--vw', document.documentElement.clientWidth / 100 + 'px');
+  }
+  updateSafeViewportUnit();
+  window.addEventListener('resize', updateSafeViewportUnit);
+
+  function waitForBackend() {
+    return new Promise((resolve) => {
+      if (typeof window.submitLetter === 'function' && typeof window.loadRandomLetter === 'function') {
+        resolve();
+        return;
+      }
+      const onReady = () => resolve();
+      window.addEventListener('loveLettersReady', onReady, { once: true });
+      const checkInterval = setInterval(() => {
+        if (typeof window.submitLetter === 'function' && typeof window.loadRandomLetter === 'function') {
+          clearInterval(checkInterval);
+          window.removeEventListener('loveLettersReady', onReady);
+          resolve();
+        }
+      }, 100);
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        window.removeEventListener('loveLettersReady', onReady);
+        console.warn('Backend did not load within 5 seconds');
+        resolve();
+      }, 5000);
+    });
+  }
+
+  function waitForTransitionEnd(el, propertyName, fallbackMs) {
+    return new Promise((resolve) => {
+      let settled = false;
+      function onEnd(e) {
+        if (e.target !== el || e.propertyName !== propertyName) return;
+        finish();
+      }
+      function finish() {
+        if (settled) return;
+        settled = true;
+        el.removeEventListener('transitionend', onEnd);
+        resolve();
+      }
+      el.addEventListener('transitionend', onEnd);
+      setTimeout(finish, fallbackMs);
+    });
+  }
+
+  // How far the letter is allowed to slide out beyond its always-visible
+  // window before falling back to internal scrolling (keeps it from
+  // reaching up into the tab buttons for extremely long letters).
+  const MAX_REVEAL_SHIFT = 140;
+
+  const envelopeWrap = document.querySelector('.envelope-wrap');
+  const envelope = document.getElementById('envelope');
+  const paper = document.getElementById('paper');
+  const paperScroll = paper.querySelector('.paper-scroll');
+  const letterContent = document.getElementById('letter-content');
+  const letterDate = document.getElementById('letter-date');
+  const letterTextarea = document.getElementById('letter-text');
+  const charCount = document.getElementById('char-count');
+  const writeMessage = document.getElementById('write-message');
+
+  const tabRead = document.getElementById('tab-read');
+  const tabWrite = document.getElementById('tab-write');
+  const tabReadImg = document.getElementById('tab-read-img');
+  const tabWriteImg = document.getElementById('tab-write-img');
+  const refreshButton = document.getElementById('refresh-button');
+  const writeControls = document.getElementById('write-controls');
+  const submitButton = document.getElementById('submit-button');
+
+  function revealPaper() {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        paper.classList.add('is-revealed');
+      });
+    });
+  }
+
+  function showEmptyState(message) {
+    letterContent.textContent = message || 'No letters yet. Be the first to share your heart.';
+    letterDate.textContent = '';
+  }
+
+  // Slides the whole paper out further when the letter is taller than its
+  // always-visible window, so the full text clears envelope-front.png's
+  // fold instead of being cut off or silently scrolled out of sight.
+  // Returns the shift amount (px, 0 or positive) so callers can re-center.
+  function adjustPaperReveal() {
+    paperScroll.style.height = '';
+    const overflow = Math.max(0, paperScroll.scrollHeight - paperScroll.clientHeight);
+    const shift = Math.min(overflow, MAX_REVEAL_SHIFT);
+    paper.style.setProperty('--reveal-shift', shift ? `-${shift}px` : '0px');
+    paperScroll.style.height = shift ? `calc(50% + ${shift}px)` : '';
+    return shift;
+  }
+
+  // .stage centers the envelope's own box in the viewport, but the letter
+  // can slide out further above it for long letters (see adjustPaperReveal)
+  // — so the true envelope+letter composition, at its tallest, sits higher
+  // than that. Rather than recentering per letter (which made the envelope
+  // visibly jump between short and long letters), this always assumes the
+  // maximum possible slide-out and pins the envelope there permanently: the
+  // lowest position it would ever need, computed once and never revisited
+  // except on window resize. Uses transform (not margin) so it doesn't feed
+  // back into how much .stage's flex centering shifts things in the first
+  // place.
+  function pinEnvelopePosition() {
+    envelopeWrap.style.transform = 'translateY(0px)';
+    const envRect = envelope.getBoundingClientRect();
+    const envCenter = (envRect.top + envRect.bottom) / 2;
+    const desiredCenter = window.innerHeight / 2 + MAX_REVEAL_SHIFT / 2;
+    envelopeWrap.style.transform = `translateY(${desiredCenter - envCenter}px)`;
+  }
+
+  async function loadAndDisplayLetter() {
+    await waitForBackend();
+    try {
+      const result = await window.loadRandomLetter();
+      if (result.success && result.letter) {
+        letterContent.textContent = result.letter.content;
+        letterDate.textContent = window.formatDate
+          ? `Written on ${window.formatDate(result.letter.createdAt)}`
+          : '';
+      } else {
+        showEmptyState(result.message);
+      }
+    } catch (err) {
+      console.error('Error loading letter:', err);
+      showEmptyState('Error loading letter. Please try again.');
+    }
+    adjustPaperReveal();
+  }
+
+  pinEnvelopePosition();
+  window.addEventListener('resize', pinEnvelopePosition);
+
+  // Initial load: fetch a letter, then slide it out of the envelope.
+  (async function init() {
+    await loadAndDisplayLetter();
+    revealPaper();
+  })();
+
+  // Read Next: fade the paper out completely, swap content, then slide it back out.
+  let isLoadingNext = false;
+  async function showNextLetter() {
+    if (isLoadingNext) return;
+    isLoadingNext = true;
+
+    await waitForBackend();
+    if (typeof window.refreshLettersCache === 'function') {
+      window.refreshLettersCache();
+    }
+
+    paper.classList.remove('is-revealed');
+    paper.classList.add('is-cycling');
+    await waitForTransitionEnd(paper, 'opacity', 400);
+
+    await loadAndDisplayLetter();
+    paper.classList.remove('is-cycling');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        paper.classList.add('is-revealed');
+      });
+    });
+    isLoadingNext = false;
+  }
+
+  // Tabs.
+  function setMode(mode) {
+    document.body.classList.toggle('mode-read', mode === 'read');
+    document.body.classList.toggle('mode-write', mode === 'write');
+    tabRead.classList.toggle('is-active', mode === 'read');
+    tabWrite.classList.toggle('is-active', mode === 'write');
+    // Exactly one heart is red (active) at a time, the other pink.
+    tabReadImg.src = mode === 'read' ? 'assets/buttons/heart-1-red.png' : 'assets/buttons/heart-1-pink.png';
+    tabWriteImg.src = mode === 'write' ? 'assets/buttons/heart-2-red.png' : 'assets/buttons/heart-2-pink.png';
+    writeControls.hidden = mode !== 'write';
+  }
+
+  tabRead.addEventListener('click', () => setMode('read'));
+  tabWrite.addEventListener('click', () => setMode('write'));
+  refreshButton.addEventListener('click', showNextLetter);
+
+  setMode('read');
+
+  // Character counter
+  letterTextarea.addEventListener('input', () => {
+    charCount.textContent = letterTextarea.value.length.toString();
+  });
+
+  // Submit
+  submitButton.addEventListener('click', async () => {
+    await waitForBackend();
+    const content = letterTextarea.value || '';
+
+    submitButton.disabled = true;
+    const originalLabel = submitButton.innerHTML;
+    submitButton.textContent = 'Sending...';
+
+    try {
+      const result = await window.submitLetter(content);
+      writeMessage.innerHTML = `<span class="msg-box">${result.message}</span>`;
+      setTimeout(() => { writeMessage.innerHTML = ''; }, 5000);
+
+      if (result.success) {
+        letterTextarea.value = '';
+        charCount.textContent = '0';
+      }
+    } catch (err) {
+      console.error('Error submitting letter:', err);
+      writeMessage.innerHTML = `<span class="msg-box">There was an error sending your letter. Please try again.</span>`;
+    } finally {
+      submitButton.disabled = false;
+      submitButton.innerHTML = originalLabel;
+    }
+  });
+
+  // Imprint
+  const imprintToggle = document.getElementById('imprint-toggle');
+  const imprintPanel = document.getElementById('imprint-panel');
+  const imprintClose = document.getElementById('imprint-close');
+
+  imprintToggle.addEventListener('click', () => {
+    imprintPanel.hidden = !imprintPanel.hidden;
+  });
+  imprintClose.addEventListener('click', () => {
+    imprintPanel.hidden = true;
+  });
+
+  // Keep the tagline's box the same width as the headline above it.
+  const logoEl = document.querySelector('.logo');
+  const taglineEl = document.querySelector('.tagline');
+  function syncTaglineWidth() {
+    taglineEl.style.width = `${logoEl.getBoundingClientRect().width}px`;
+  }
+  syncTaglineWidth();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(syncTaglineWidth);
+  }
+  window.addEventListener('resize', syncTaglineWidth);
+})();
