@@ -126,11 +126,13 @@ body {
   text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 
-/* Mobile-only "info" toggle + close button for .tagline — see the mobile
-   layout section near the bottom of this file. Both hidden on desktop,
-   where the tagline is just shown directly (with no close button). */
+/* Mobile-only "info" toggle + close button for .tagline, and the
+   mobile-only refresh button that sits in the tabs row (desktop keeps its
+   own #refresh-button beside the envelope instead) — see the mobile
+   layout section near the bottom of this file. All hidden on desktop. */
 .tagline-toggle,
-.tagline-close {
+.tagline-close,
+.refresh-btn-mobile {
   display: none;
 }
 
@@ -236,19 +238,6 @@ body {
   align-items: center;
   gap: 8px;
   white-space: nowrap;
-}
-
-/* Narrow viewports don't have room to the right of the envelope (which is
-   already up to 86vw wide) — drop below it instead, still centered. */
-@media (max-width: 700px) {
-  .envelope-side-control {
-    left: 50%;
-    top: 100%;
-    transform: translateX(-50%);
-    margin-left: 0;
-    margin-top: 20px;
-    flex-direction: row;
-  }
 }
 
 .refresh-btn {
@@ -583,26 +572,40 @@ body.mode-read .letter-textarea { display: none; }
     background: none;
     border: none;
     padding: 0;
-    font-size: 13px;
+    font-size: 14px;
     color: #fff;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
     text-decoration: none;
     cursor: pointer;
   }
 
+  /* Animated open/close instead of a plain display:none/block toggle —
+     display can't be transitioned, so this stays permanently display:block
+     and animates max-height instead (0 = fully collapsed, since
+     box-sizing:border-box + overflow:hidden means padding collapses to
+     nothing with it too, no separate padding animation needed).
+     Sequenced in two steps, matching "push down, then fade in": max-height
+     runs first, and opacity's transition-delay (equal to max-height's
+     duration) holds it at 0 until that finishes, so the fade-in only
+     starts once .tabs/the envelope have already finished sliding down to
+     make room. ease-in-out on both — no bounce/spring easing. */
   .tagline {
     position: relative;
-    display: none;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
     margin-top: 10px;
     background: rgba(255, 255, 255, 0.85);
     padding: 12px 34px 12px 14px;
     border-radius: 10px;
     color: #000;
     text-shadow: none;
+    transition: max-height 0.45s ease-in-out, opacity 0.3s ease-in-out 0.45s;
   }
 
   .tagline.is-open {
-    display: block;
+    max-height: 220px;
+    opacity: 1;
   }
 
   .tagline-close {
@@ -624,8 +627,43 @@ body.mode-read .letter-textarea { display: none; }
     width: 100%;
     max-width: none;
     justify-content: center;
+    align-items: center;
+    gap: 14px;
     margin: 0;
     padding: 16px 20px 0;
+  }
+
+  /* The envelope-side refresh button is replaced by #refresh-button-mobile
+     below, which sits in the tabs row instead — see the HTML comment on
+     that button. */
+  #refresh-button {
+    display: none;
+  }
+
+  .refresh-btn-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .refresh-btn-mobile img {
+    width: 44px;
+    height: 44px;
+    transition: transform 0.3s ease;
+  }
+
+  .refresh-btn-mobile:hover img,
+  .refresh-btn-mobile:active img {
+    transform: rotate(-35deg);
+  }
+
+  /* Same size as the letter text (.letter-content/.letter-textarea are
+     14px) for the refresh label, char count, and submit button. */
+  .refresh-label,
+  .char-count-row,
+  .pill-btn {
+    font-size: 14px;
   }
 
   .stage {

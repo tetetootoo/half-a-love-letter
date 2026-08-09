@@ -76,6 +76,7 @@
   const tabReadImg = document.getElementById('tab-read-img');
   const tabWriteImg = document.getElementById('tab-write-img');
   const refreshButton = document.getElementById('refresh-button');
+  const refreshButtonMobile = document.getElementById('refresh-button-mobile');
   const writeControls = document.getElementById('write-controls');
   const submitButton = document.getElementById('submit-button');
 
@@ -202,6 +203,7 @@
   tabRead.addEventListener('click', () => setMode('read'));
   tabWrite.addEventListener('click', () => setMode('write'));
   refreshButton.addEventListener('click', showNextLetter);
+  refreshButtonMobile.addEventListener('click', showNextLetter);
 
   setMode('read');
 
