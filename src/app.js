@@ -52,15 +52,15 @@
     });
   }
 
-  // How far the letter is allowed to slide out beyond its always-visible
-  // window before falling back to internal scrolling (keeps it from
-  // reaching up into the tab buttons for extremely long letters).
-  const MAX_REVEAL_SHIFT = 140;
-
   // Matches the breakpoint in style.css where the layout switches from
   // fixed-position corners + a pinned envelope to plain stacked flow.
   const mobileLayout = window.matchMedia('(max-width: 700px)');
 
+  // Minimum breathing room to keep between the buttons row and whatever's
+  // below it (the letter on mobile, or the info box when it's open).
+  const CLEARANCE_GAP = 20;
+
+  const tabsNav = document.querySelector('.tabs');
   const envelopeWrap = document.querySelector('.envelope-wrap');
   const envelope = document.getElementById('envelope');
   const paper = document.getElementById('paper');
@@ -96,18 +96,26 @@
   // Slides the whole paper out further when the letter is taller than its
   // always-visible window, so the full text clears envelope-front.png's
   // fold instead of being cut off or silently scrolled out of sight.
-  // Returns the shift amount (px, 0 or positive) so callers can re-center.
+  // The cap isn't a fixed pixel value: beyond the point where
+  // .paper-scroll would reach 100% of .paper's own content-box height,
+  // sliding further doesn't reveal any more text (.paper is a fixed size
+  // — see its overflow:hidden in style.css — so .paper-scroll can't grow
+  // past that regardless), it just costs clearance for no benefit. That
+  // point scales with the envelope's actual rendered size, so mobile's
+  // smaller envelope gets a smaller, correctly-scaled cap instead of the
+  // same fixed number as desktop. Any real excess beyond the cap still
+  // scrolls via .paper-scroll's own overflow-y: auto.
+  // Returns the shift amount (px, 0 or positive) so callers can react to it.
   function adjustPaperReveal() {
     paperScroll.style.height = '';
+    const paddingTop = parseFloat(getComputedStyle(paper).paddingTop) || 0;
+    const paddingBottom = parseFloat(getComputedStyle(paper).paddingBottom) || 0;
+    const paperContentHeight = paper.clientHeight - paddingTop - paddingBottom;
+    const maxUsefulShift = paperContentHeight * 0.5; // .paper-scroll's baseline is 50%
     const overflow = Math.max(0, paperScroll.scrollHeight - paperScroll.clientHeight);
-    const shift = Math.min(overflow, MAX_REVEAL_SHIFT);
+    const shift = Math.min(overflow, maxUsefulShift);
     paper.style.setProperty('--reveal-shift', shift ? `-${shift}px` : '0px');
-    // Capped at 100% so this never asks .paper (fixed-size, see its
-    // overflow:hidden in style.css) for more room than it actually has —
-    // on a small envelope, 50% + MAX_REVEAL_SHIFT can otherwise exceed
-    // .paper's whole content-box height. Any real excess still scrolls
-    // via .paper-scroll's own overflow-y: auto.
-    paperScroll.style.height = shift ? `min(calc(50% + ${shift}px), 100%)` : '';
+    paperScroll.style.height = shift ? `calc(50% + ${shift}px)` : '';
     return shift;
   }
 
@@ -115,15 +123,14 @@
   // can slide out further above it for long letters (see adjustPaperReveal)
   // — so the true envelope+letter composition, at its tallest, sits higher
   // than that. Rather than recentering per letter (which made the envelope
-  // visibly jump between short and long letters), this always assumes the
-  // maximum possible slide-out and pins the envelope there permanently: the
+  // visibly jump between short and long letters), this assumes the maximum
+  // *possible* slide-out (a full envelope-height's worth, an upper bound
+  // regardless of content) and pins the envelope there permanently: the
   // lowest position it would ever need, computed once and never revisited
   // except on window resize. Uses transform (not margin) so it doesn't feed
   // back into how much .stage's flex centering shifts things in the first
-  // place.
+  // place. Desktop only — mobile uses pinEnvelopeBelowButtons instead.
   function pinEnvelopePosition() {
-    // Mobile lays everything out in normal document flow instead —
-    // nothing to compute, just make sure no leftover transform applies.
     if (mobileLayout.matches) {
       envelopeWrap.style.transform = '';
       return;
@@ -131,9 +138,32 @@
     envelopeWrap.style.transform = 'translateY(0px)';
     const envRect = envelope.getBoundingClientRect();
     const envCenter = (envRect.top + envRect.bottom) / 2;
-    const desiredCenter = window.innerHeight / 2 + MAX_REVEAL_SHIFT / 2;
+    const maxPossibleShift = envRect.height / 2;
+    const desiredCenter = window.innerHeight / 2 + maxPossibleShift / 2;
     envelopeWrap.style.transform = `translateY(${desiredCenter - envCenter}px)`;
   }
+
+  // Mobile lays .brand/.tabs/the envelope out in normal document flow, so
+  // instead of a fixed guessed margin, this measures the buttons row's
+  // actual current position (which moves when the info box opens/closes)
+  // and the letter's actual current slide-out amount, then sets exactly
+  // the margin-top needed so the letter's top can never rise above the
+  // buttons row's bottom — recomputed on every letter change, on resize,
+  // and once the info box's push-down animation finishes.
+  function pinEnvelopeBelowButtons(shift) {
+    if (!mobileLayout.matches) {
+      envelopeWrap.style.marginTop = '';
+      return;
+    }
+    envelopeWrap.style.marginTop = '0px';
+    const tabsBottom = tabsNav.getBoundingClientRect().bottom;
+    const envTop = envelope.getBoundingClientRect().top;
+    const requiredEnvTop = tabsBottom + CLEARANCE_GAP + shift;
+    const delta = requiredEnvTop - envTop;
+    envelopeWrap.style.marginTop = delta > 0 ? `${delta}px` : '0px';
+  }
+
+  let lastShift = 0;
 
   async function loadAndDisplayLetter() {
     await waitForBackend();
@@ -151,11 +181,15 @@
       console.error('Error loading letter:', err);
       showEmptyState('Error loading letter. Please try again.');
     }
-    adjustPaperReveal();
+    lastShift = adjustPaperReveal();
+    pinEnvelopeBelowButtons(lastShift);
   }
 
   pinEnvelopePosition();
-  window.addEventListener('resize', pinEnvelopePosition);
+  window.addEventListener('resize', () => {
+    pinEnvelopePosition();
+    pinEnvelopeBelowButtons(lastShift);
+  });
 
   // Initial load: fetch a letter, then slide it out of the envelope.
   (async function init() {
@@ -265,12 +299,23 @@
 
   // Mobile-only: the tagline is hidden behind an "info" toggle instead of
   // shown directly (see the @media (max-width: 700px) block in style.css).
+  // Opening/closing it moves .tabs (it's the sibling right below), so the
+  // letter's clearance below the buttons needs recomputing once that
+  // push settles — otherwise the last-known margin (from before the info
+  // box's height changed) could be stale.
   const taglineToggle = document.getElementById('tagline-toggle');
   const taglineClose = document.getElementById('tagline-close');
+  function recheckClearanceAfterTaglineMove() {
+    waitForTransitionEnd(taglineEl, 'max-height', 500).then(() => {
+      pinEnvelopeBelowButtons(lastShift);
+    });
+  }
   taglineToggle.addEventListener('click', () => {
     taglineEl.classList.toggle('is-open');
+    recheckClearanceAfterTaglineMove();
   });
   taglineClose.addEventListener('click', () => {
     taglineEl.classList.remove('is-open');
+    recheckClearanceAfterTaglineMove();
   });
 })();

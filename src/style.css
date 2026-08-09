@@ -260,10 +260,19 @@ body.mode-write .refresh-btn {
   display: none;
 }
 
+/* A white circular "chip" behind the icon, matching the visual weight of
+   the solid-colored heart buttons — a bare outline icon on the photo
+   background read as much fainter than the hearts. box-sizing:border-box
+   (global) keeps width/height as the total chip size, with padding
+   carving out room for the background to show around the icon. */
 .refresh-btn img {
   display: block;
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
   transition: transform 0.3s ease;
 }
 
@@ -278,6 +287,7 @@ body.mode-write .refresh-btn {
 
 .refresh-label {
   font-size: 13px;
+  font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
@@ -661,15 +671,24 @@ body.mode-read .letter-textarea { display: none; }
     gap: 4px;
   }
 
+  /* Bigger than the old bare-icon size (44px) now that it has a
+     background chip (see the shared .refresh-btn img rule) to fill out —
+     matches the enlarged hearts below in visual weight. */
   .refresh-btn-mobile img {
-    width: 44px;
-    height: 44px;
-    transition: transform 0.3s ease;
+    width: 60px;
+    height: 60px;
+    padding: 11px;
   }
 
   .refresh-btn-mobile:hover img,
   .refresh-btn-mobile:active img {
     transform: rotate(-35deg);
+  }
+
+  /* Hearts read as small at the old clamp() — bigger minimum and scaling
+     factor here (mobile only; desktop keeps the smaller clamp above). */
+  .tab-btn.key-btn {
+    height: clamp(80px, calc(20 * var(--vw, 1vw)), 130px);
   }
 
   /* Same size as the letter text (.letter-content/.letter-textarea are
@@ -684,11 +703,14 @@ body.mode-read .letter-textarea { display: none; }
     justify-content: flex-start;
   }
 
-  /* Generous enough to fit the longest possible slide-out (see
-     MAX_REVEAL_SHIFT in app.js) so the letter can never rise up into the
-     read/write buttons above it, however long it is. */
+  /* This is just the pre-JS fallback (and a floor while JS is loading) —
+     app.js's pinEnvelopeBelowButtons() measures the buttons row's actual
+     position and the current letter's actual slide-out amount, and
+     overrides this with an exact inline margin-top so the letter's top
+     can never rise above the buttons, however long it is or wherever the
+     buttons row currently sits (e.g. pushed down by the open info box). */
   .envelope-wrap {
-    margin-top: 150px;
+    margin-top: 40px;
   }
 
   /* display:contents on desktop (default, outside this media query) makes
