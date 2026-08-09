@@ -46,3 +46,7 @@ Then open `http://localhost:8000`.
 ## Credits
 
 Made with ❤️ for Valentine's Day 2026 by [Half Odd](https://halfodd.com).
+
+## License
+
+[MIT](LICENSE)
