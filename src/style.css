@@ -68,12 +68,20 @@ body {
   position: fixed;
   inset: 0;
   z-index: -2;
+  /* background-attachment: fixed (no longer used below) is notoriously
+     unreliable on mobile Safari — the image can still scroll with the
+     page despite it, a completely separate issue from the element's own
+     position. Since this whole element is already position:fixed and
+     never scrolls internally, plain default attachment (scroll) achieves
+     the same "pinned to the viewport" result without that bug, and
+     inset:0 (not 100vh/100%) means it's always exactly the viewport's
+     size regardless of mobile browsers' dynamic address-bar height. */
   background:
     linear-gradient(to bottom,
       rgba(8, 12, 24, 0.35) 0%,
       rgba(8, 12, 24, 0.05) 35%,
       rgba(8, 12, 24, 0.25) 100%),
-    url('../assets/background.jpg') center bottom / cover no-repeat fixed;
+    url('../assets/background.jpg') center bottom / cover no-repeat;
 }
 
 .stage {
@@ -595,16 +603,22 @@ body.mode-read .letter-textarea { display: none; }
     overflow: hidden;
     opacity: 0;
     margin-top: 10px;
+    /* 0 by default (closed); .is-open below sets 40px, the gap between
+       the info box's bottom edge and .tabs's own top edge while open.
+       Transitioned alongside max-height so the extra space opens up
+       smoothly instead of snapping in at the end. */
+    margin-bottom: 0;
     background: rgba(255, 255, 255, 0.85);
     padding: 12px 34px 12px 14px;
     border-radius: 10px;
     color: #000;
     text-shadow: none;
-    transition: max-height 0.45s ease-in-out, opacity 0.3s ease-in-out 0.45s;
+    transition: max-height 0.45s ease-in-out, margin-bottom 0.45s ease-in-out, opacity 0.3s ease-in-out 0.45s;
   }
 
   .tagline.is-open {
     max-height: 220px;
+    margin-bottom: 40px;
     opacity: 1;
   }
 
