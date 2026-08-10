@@ -58,7 +58,7 @@
 
   // Minimum breathing room to keep between the buttons row and whatever's
   // below it (the letter on mobile, or the info box when it's open).
-  const CLEARANCE_GAP = 20;
+  const CLEARANCE_GAP = 40;
 
   const tabsNav = document.querySelector('.tabs');
   const envelopeWrap = document.querySelector('.envelope-wrap');

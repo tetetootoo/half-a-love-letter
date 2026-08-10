@@ -66,16 +66,28 @@ body {
 
 .background {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Deliberately NOT inset:0/bottom:0: that ties this element's height to
+     the *dynamic* visual viewport, which mobile browsers continuously
+     resize as the address bar animates away during a scroll gesture —
+     with background-size:cover, that live resize reads as the image
+     visibly "zooming" while scrolling. 100lvh (large viewport height) is
+     the size with browser UI fully retracted, and — unlike 100dvh — it
+     stays constant through that whole animation instead of tracking it,
+     so the image never resizes at all. The plain 100vh above it is only
+     a fallback for browsers without lvh support; modern ones use the
+     line below it. */
+  height: 100vh;
+  height: 100lvh;
   z-index: -2;
   /* background-attachment: fixed (no longer used below) is notoriously
      unreliable on mobile Safari — the image can still scroll with the
      page despite it, a completely separate issue from the element's own
      position. Since this whole element is already position:fixed and
      never scrolls internally, plain default attachment (scroll) achieves
-     the same "pinned to the viewport" result without that bug, and
-     inset:0 (not 100vh/100%) means it's always exactly the viewport's
-     size regardless of mobile browsers' dynamic address-bar height. */
+     the same "pinned to the viewport" result without that bug. */
   background:
     linear-gradient(to bottom,
       rgba(8, 12, 24, 0.35) 0%,
