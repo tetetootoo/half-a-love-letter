@@ -172,7 +172,10 @@ body {
 
 /* ---------- Heart toggle buttons (assets/heart-1-*.png, heart-2-*.png) ----------
    Each button swaps between its own red (active) and pink (inactive) image
-   in app.js's setMode() — exactly one heart is red at a time. Sized with
+   in app.js's setMode() — exactly one heart is red at a time. The images
+   are now plain (no baked-in text — see assets/buttons/), with a label
+   below each in a flex column, the same arrangement (and the same
+   .refresh-label class/styling) as the read-next button. Sized with
    clamp() so it shrinks on narrow viewports instead of colliding with
    .brand on the opposite corner. */
 .tab-btn.key-btn {
@@ -181,13 +184,16 @@ body {
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  height: clamp(60px, calc(16 * var(--vw, 1vw)), 112px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   transition: transform 0.12s ease;
 }
 
 .tab-btn.key-btn img {
   display: block;
-  height: 100%;
+  height: clamp(60px, calc(16 * var(--vw, 1vw)), 112px);
   width: auto;
 }
 
@@ -699,7 +705,7 @@ body.mode-read .letter-textarea { display: none; }
 
   /* Hearts read as small at the old clamp() — bigger minimum and scaling
      factor here (mobile only; desktop keeps the smaller clamp above). */
-  .tab-btn.key-btn {
+  .tab-btn.key-btn img {
     height: clamp(80px, calc(20 * var(--vw, 1vw)), 130px);
   }
 
