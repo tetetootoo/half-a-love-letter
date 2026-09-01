@@ -191,6 +191,20 @@
     pinEnvelopeBelowButtons(lastShift);
   });
 
+  // Belt-and-suspenders for "the letter sometimes covers the button
+  // text": rather than trying to enumerate every possible cause of the
+  // buttons row changing size (a web font swapping in after load, an
+  // image finishing decode, etc.), just react to the row's actual
+  // rendered size changing, whatever the cause, and recompute the
+  // clearance immediately. pinEnvelopeBelowButtons only ever touches
+  // .envelope-wrap's margin, never .tabs itself, so this can't loop.
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => pinEnvelopeBelowButtons(lastShift)).observe(tabsNav);
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => pinEnvelopeBelowButtons(lastShift));
+  }
+
   // Initial load: fetch a letter, then slide it out of the envelope.
   (async function init() {
     await loadAndDisplayLetter();
