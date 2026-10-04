@@ -4,6 +4,18 @@ Share your heart with the world and leave a note of love for a special someone â
 
 A small site where anyone can write an anonymous love letter or read a random one someone else has written. Letters are shown sliding out of an animated, hand-drawn envelope.
 
+## Design experiment
+
+Half a Love Letter also began as an experiment in AI-assisted design.
+
+I explored the same idea with several AI tools, including ChatGPT, Claude, Figma AI, and Framer AI, to see how differently they would interpret the same product concept. Despite using different tools, the results repeatedly converged on similar layouts, familiar components, and fairly literal interpretations of the brief.
+
+They were useful for generating possible directions quickly, but less successful at deciding what this particular experience should feel like.
+
+I ultimately moved away from the generated directions and designed the final interaction manually around the hand-drawn envelope and letter.
+
+The experiment became less about whether AI could generate an interface and more about where speed ends and design judgment begins.
+
 ## Features
 
 - **Read** â€” loads a random letter from Firestore, animated sliding out of the envelope. Longer letters slide out further so the whole thing stays readable.
